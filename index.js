@@ -1,4 +1,4 @@
-// Main webhook handler - FIXED VERSION
+// Main webhook handler
 app.post('/webhook/candidate-submitted', async (req, res) => {
   try {
     console.log('📝 Webhook POST request received!');
