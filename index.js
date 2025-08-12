@@ -34,15 +34,14 @@ async function callAshbyAPI(endpoint, data) {
 
 // Check if user is from recruiting agency
 function isRecruitingAgency(user) {
-  // Customize this logic based on how you identify recruiting agencies
-  // Options:
-  // 1. Check user role
-  // 2. Check user email domain
-  // 3. Check user tags/groups
+  // Check if user role is "External Recruiter"
+  console.log(`👤 Checking user: ${user.firstName} ${user.lastName} (${user.email})`);
+  console.log(`📋 User role: "${user.role}"`);
   
-  return user.role === 'external_recruiter' || 
-         user.email.includes('@recruitingagency.com') ||
-         (user.customFields && user.customFields.userType === 'agency');
+  const isExternalRecruiter = user.role === 'External Recruiter';
+  console.log(`✅ Is External Recruiter: ${isExternalRecruiter}`);
+  
+  return isExternalRecruiter;
 }
 
 // Root endpoint
