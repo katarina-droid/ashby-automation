@@ -89,14 +89,21 @@ app.post('/webhook/candidate-submitted', async (req, res) => {
     
     const webhookData = req.body;
     
+    // Handle Ashby test/ping webhooks
+    if (webhookData.type === 'ping' || webhookData.ping || !webhookData.candidateId) {
+      console.log('✅ Ping/test webhook received - responding with success');
+      return res.status(200).send('Webhook endpoint is working! Ping received successfully.');
+    }
+    
     // Extract relevant information from webhook
     const candidateId = webhookData.candidateId;
     const applicationId = webhookData.applicationId;
     const submittingUserId = webhookData.submittingUserId || webhookData.createdBy?.id;
     
     if (!candidateId || !submittingUserId) {
-      console.log('Missing required data in webhook');
-      return res.status(400).send('Missing candidate or user ID');
+      console.log('Missing required data in webhook - this might be a test ping');
+      console.log('Available data:', Object.keys(webhookData));
+      return res.status(200).send('Webhook received but missing expected data - might be a test ping');
     }
 
     // Get user information to check if they're from recruiting agency
