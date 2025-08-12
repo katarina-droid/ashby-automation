@@ -89,15 +89,44 @@ app.post('/webhook/candidate-submitted', async (req, res) => {
     const webhookData = req.body;
     
     // Handle Ashby test/ping webhooks
-    if (webhookData.type === 'ping' || webhookData.ping || !webhookData.candidateId) {
+    if (webhookData.type === 'ping' || webhookData.ping) {
       console.log('✅ Ping/test webhook received - responding with success');
       return res.status(200).send('Webhook endpoint is working! Ping received successfully.');
     }
     
-    // Extract relevant information from webhook
-    const candidateId = webhookData.candidateId;
-    const applicationId = webhookData.applicationId;
-    const submittingUserId = webhookData.submittingUserId || webhookData.createdBy?.id;
+    // Handle applicationSubmit webhooks
+    if (webhookData.action === 'applicationSubmit') {
+      console.log('📝 Application submit webhook received');
+      
+      // Extract data from applicationSubmit webhook structure
+      const candidateId = webhookData.data?.candidateId || webhookData.candidateId;
+      const applicationId = webhookData.data?.applicationId || webhookData.applicationId;
+      const submittingUserId = webhookData.data?.submittingUserId || webhookData.data?.createdBy?.id || webhookData.createdBy?.id;
+      
+      console.log('🔍 Extracted data:');
+      console.log('  - candidateId:', candidateId);
+      console.log('  - applicationId:', applicationId);
+      console.log('  - submittingUserId:', submittingUserId);
+      
+      if (!candidateId || !submittingUserId) {
+        console.log('❌ Missing required data - candidateId or submittingUserId');
+        console.log('Available webhook data keys:', Object.keys(webhookData));
+        if (webhookData.data) {
+          console.log('Available data keys:', Object.keys(webhookData.data));
+        }
+        return res.status(200).send('Webhook received but missing expected data fields');
+      }
+      
+      console.log('✅ Required data found, proceeding with automation...');
+    } else {
+      console.log('❓ Unknown webhook action:', webhookData.action);
+      return res.status(200).send('Webhook received but unknown action type');
+    }
+    
+    // Extract relevant information from webhook (works for both old and new structure)
+    const candidateId = webhookData.data?.candidateId || webhookData.candidateId;
+    const applicationId = webhookData.data?.applicationId || webhookData.applicationId;
+    const submittingUserId = webhookData.data?.submittingUserId || webhookData.data?.createdBy?.id || webhookData.createdBy?.id || webhookData.submittingUserId;
     
     if (!candidateId || !submittingUserId) {
       console.log('Missing required data in webhook - this might be a test ping');
