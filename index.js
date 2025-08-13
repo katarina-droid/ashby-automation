@@ -126,9 +126,17 @@ app.post('/webhook/candidate-submitted', async (req, res) => {
       console.log('✅ Required data found, proceeding with automation...');
       
       // Get user information to check if they're from recruiting agency
-      const userResponse = await callAshbyAPI('user.info', {
-        userId: submittingUserId
-      });
+      console.log('🔍 Calling user.info API with userId:', submittingUserId);
+      let userResponse;
+      try {
+        userResponse = await callAshbyAPI('user.info', {
+          userId: submittingUserId
+        });
+        console.log('✅ User info retrieved successfully');
+      } catch (error) {
+        console.error('❌ Failed to get user info:', error.response?.data || error.message);
+        return res.status(200).send('Failed to get user information from Ashby');
+      }
       
       const user = userResponse.results;
       
@@ -139,21 +147,39 @@ app.post('/webhook/candidate-submitted', async (req, res) => {
       }
 
       // Get candidate information for the notification
-      const candidateResponse = await callAshbyAPI('candidate.info', {
-        candidateId: candidateId
-      });
+      console.log('🔍 Calling candidate.info API with candidateId:', candidateId);
+      let candidateResponse;
+      try {
+        candidateResponse = await callAshbyAPI('candidate.info', {
+          candidateId: candidateId
+        });
+        console.log('✅ Candidate info retrieved successfully');
+      } catch (error) {
+        console.error('❌ Failed to get candidate info:', error.response?.data || error.message);
+        return res.status(200).send('Failed to get candidate information from Ashby');
+      }
       
       const candidate = candidateResponse.results;
 
       // Assign feedback form to the recruiting agency user
-      const feedbackFormResponse = await callAshbyAPI('feedbackForm.create', {
-        candidateId: candidateId,
-        feedbackFormDefinitionId: CONFIG.FEEDBACK_FORM_ID,
-        assignedToUserId: submittingUserId,
-        dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
-      });
-
-      console.log('✅ Feedback form assigned successfully:', feedbackFormResponse);
+      console.log('🔍 Calling feedbackForm.create API...');
+      console.log('  - candidateId:', candidateId);
+      console.log('  - feedbackFormDefinitionId:', CONFIG.FEEDBACK_FORM_ID);
+      console.log('  - assignedToUserId:', submittingUserId);
+      
+      let feedbackFormResponse;
+      try {
+        feedbackFormResponse = await callAshbyAPI('feedbackForm.create', {
+          candidateId: candidateId,
+          feedbackFormDefinitionId: CONFIG.FEEDBACK_FORM_ID,
+          assignedToUserId: submittingUserId,
+          dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
+        });
+        console.log('✅ Feedback form assigned successfully:', feedbackFormResponse);
+      } catch (error) {
+        console.error('❌ Failed to create feedback form:', error.response?.data || error.message);
+        return res.status(200).send('Failed to create feedback form in Ashby');
+      }
 
       // Send notification email
       await sendNotificationEmail(user, candidate, feedbackFormResponse.results);
