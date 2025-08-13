@@ -98,33 +98,65 @@ app.post('/webhook/candidate-submitted', async (req, res) => {
     if (webhookData.action === 'applicationSubmit') {
       console.log('📝 Application submit webhook received');
       
-      // FIXED: Extract data from the correct nested structure
-      const application = webhookData.data?.application;
+      // DEBUG: Let's see the exact structure
+      console.log('🔍 DEBUGGING webhook structure:');
+      console.log('  - webhookData keys:', Object.keys(webhookData));
+      console.log('  - webhookData.data keys:', webhookData.data ? Object.keys(webhookData.data) : 'no data object');
+      console.log('  - Full webhookData.data:', JSON.stringify(webhookData.data, null, 2));
       
-      if (!application) {
-        console.log('❌ No application data found in webhook');
-        console.log('Available webhook data keys:', Object.keys(webhookData));
-        if (webhookData.data) {
-          console.log('Available data keys:', Object.keys(webhookData.data));
-        }
+      // Try multiple possible locations for the application data
+      let application = null;
+      let candidateId = null;
+      let applicationId = null;
+      let submittingUserId = null;
+      
+      // Check different possible structures
+      if (webhookData.data?.application) {
+        console.log('✅ Found application in webhookData.data.application');
+        application = webhookData.data.application;
+        candidateId = application.candidateId;
+        applicationId = application.id;
+        submittingUserId = application.createdBy?.id || application.submittingUserId;
+      } else if (webhookData.data) {
+        console.log('✅ Checking if data IS the application');
+        application = webhookData.data;
+        candidateId = application.candidateId;
+        applicationId = application.id || application.applicationId;
+        submittingUserId = application.createdBy?.id || application.submittingUserId;
+      } else {
+        console.log('❌ No application data found in expected locations');
         return res.status(200).send('Webhook received but no application data found');
       }
-      
-      // Extract the actual fields from the application object
-      const candidateId = application.candidateId;
-      const applicationId = application.id; // Note: application ID is usually just 'id'
-      const submittingUserId = application.createdBy?.id || application.submittingUserId;
       
       console.log('🔍 Extracted data:');
       console.log('  - candidateId:', candidateId);
       console.log('  - applicationId:', applicationId);
       console.log('  - submittingUserId:', submittingUserId);
+      console.log('🔍 Application object keys:', Object.keys(application));
       console.log('🔍 Full application object:', JSON.stringify(application, null, 2));
       
       if (!candidateId || !submittingUserId) {
         console.log('❌ Missing required data - candidateId or submittingUserId');
-        console.log('Available application keys:', Object.keys(application));
-        return res.status(200).send('Webhook received but missing expected data fields');
+        console.log('❌ candidateId found:', !!candidateId);
+        console.log('❌ submittingUserId found:', !!submittingUserId);
+        
+        // Try alternative field names
+        const altCandidateId = application.candidate?.id || application.candidateUuid;
+        const altSubmittingUserId = application.author?.id || application.createdBy || application.userId;
+        
+        console.log('🔍 Trying alternative field names:');
+        console.log('  - application.candidate?.id:', altCandidateId);
+        console.log('  - application.candidateUuid:', application.candidateUuid);
+        console.log('  - application.author?.id:', application.author?.id);
+        console.log('  - application.createdBy:', application.createdBy);
+        console.log('  - application.userId:', application.userId);
+        
+        if (altCandidateId) candidateId = altCandidateId;
+        if (altSubmittingUserId) submittingUserId = altSubmittingUserId;
+        
+        if (!candidateId || !submittingUserId) {
+          return res.status(200).send('Webhook received but missing expected data fields');
+        }
       }
       
       console.log('✅ Required data found, proceeding with automation...');
