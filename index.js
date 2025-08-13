@@ -36,9 +36,11 @@ async function callAshbyAPI(endpoint, data) {
 function isRecruitingAgency(user) {
   // Check if user role is "External Recruiter"
   console.log(`👤 Checking user: ${user.firstName} ${user.lastName} (${user.email})`);
+  console.log(`📋 User globalRole: "${user.globalRole}"`);
   console.log(`📋 User role: "${user.role}"`);
   
-  const isExternalRecruiter = user.role === 'External Recruiter';
+  // Check both globalRole and role fields since Ashby might use either
+  const isExternalRecruiter = user.globalRole === 'External Recruiter' || user.role === 'External Recruiter';
   console.log(`✅ Is External Recruiter: ${isExternalRecruiter}`);
   
   return isExternalRecruiter;
